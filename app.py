@@ -1,42 +1,22 @@
-# replace with your full app code
-
 import streamlit as st
 import pandas as pd
 import numpy as np
 import os
 import plotly.express as px
 
-# --- 1. 页面配置 ---
+# --- 1. Page Configuration ---
 st.set_page_config(page_title="TechQuant Pro 50", layout="wide")
 
-st.title("🚀 TechQuant Pro：美国科技50强多因子分析终端")
-st.caption("2026版 | 多因子投资分析工具")
+st.title("TechQuant Pro: US Tech Top 50 Multi-Factor Analysis Terminal")
+st.caption("2026 Edition | Professional Multi-Factor Investment Analytics Tool")
 
-# --- ⭐ 项目说明（高分关键） ---
-st.markdown("""
-### 🎯 项目目标
-本工具通过整合盈利能力、研发投入、估值水平和风险指标，帮助用户对美国科技股进行系统性分析。
 
-### 👥 目标用户
-- 个人投资者  
-- 金融/经济专业学生  
-- 初级分析师  
-
-### ⚠️ 现实痛点
-大多数平台只提供价格或单一指标分析，缺乏多维度综合判断工具。
-
-👉 本系统通过**多因子模型 + 可调权重机制**，实现更科学的投资分析。
-""")
-
-# --- 2. 数据加载 ---
+# --- 2. Data Loading ---
 @st.cache_data
 def load_data():
-    paths = [
-        "wrds_output_v3/us_tech_top50_2026.csv",
-        "us_tech_top50_2026.csv"
-    ]
+    """Load and preprocess the dataset from local paths."""
+    paths = ["wrds_output_v3/us_tech_top50_2026.csv", "us_tech_top50_2026.csv"]
     file_path = next((p for p in paths if os.path.exists(p)), None)
-
     if not file_path:
         return None
 
@@ -44,163 +24,165 @@ def load_data():
     df['date'] = pd.to_datetime(df['date'])
     df['ticker'] = df['ticker'].astype(str).str.strip()
 
-    cols = ['roa', 'gross_margin', 'rnd_to_rev', 'bm_ratio']
-    df[cols] = df[cols].fillna(0)
-
-    # ⭐ 风险指标（波动率）
+    # Fill missing values and ensure sorting to prevent broken line charts
+    cols = ['roa', 'gross_margin', 'rnd_to_rev', 'bm_ratio', 'prc', 'ret']
     df = df.sort_values(['ticker', 'date'])
-    df['volatility'] = (
-        df.groupby('ticker')['ret']
-        .rolling(12)
-        .std()
-        .reset_index(0, drop=True)
+    df[cols] = df.groupby('ticker')[cols].transform(
+        lambda g: g.ffill().bfill().interpolate()
     )
+
+    # Calculate Volatility (12-month rolling standard deviation)
+    df['volatility'] = df.groupby('ticker')['ret'].rolling(12, min_periods=1).std().reset_index(0, drop=True)
+    # Calculate Rolling Return (12-month average)
+    df['rolling_return'] = df.groupby('ticker')['ret'].rolling(12, min_periods=1).mean().reset_index(0, drop=True)
 
     return df
 
 
 df_raw = load_data()
-
 if df_raw is None:
-    st.error("❌ 未找到数据文件，请检查CSV路径")
+    st.error("❌ Data file not found. Please ensure the CSV is in the directory.");
     st.stop()
 
-# --- 3. 侧边栏 ---
-st.sidebar.header("🕹️ 控制面板")
-
+# --- 3. Sidebar Control Panel ---
+st.sidebar.header("🕹️ Control Panel")
 all_tickers = sorted(df_raw['ticker'].unique())
 default_list = ["NVDA", "AAPL", "MSFT", "PLTR", "SMCI"]
-
-selected_tickers = st.sidebar.multiselect(
-    "选择股票",
-    all_tickers,
-    default=[t for t in default_list if t in all_tickers]
-)
+selected_tickers = st.sidebar.multiselect("Select Stocks", all_tickers,
+                                          default=[t for t in default_list if t in all_tickers])
 
 metric_map = {
-    "prc": "股价",
-    "ret": "收益率",
-    "roa": "资产回报率",
-    "gross_margin": "毛利率",
-    "rnd_to_rev": "研发投入比",
-    "bm_ratio": "账面市值比"
+    "prc": "Price", "ret": "Monthly Return", "roa": "ROA (Return on Assets)",
+    "gross_margin": "Gross Margin", "rnd_to_rev": "R&D Intensity", "bm_ratio": "Book-to-Market"
 }
+selected_metric = st.sidebar.selectbox("Primary Metric", list(metric_map.keys()), format_func=lambda x: metric_map[x])
 
-selected_metric = st.sidebar.selectbox(
-    "选择分析指标",
-    list(metric_map.keys()),
-    format_func=lambda x: metric_map[x]
-)
+# Filter data based on selection
+df = df_raw[df_raw['ticker'].isin(selected_tickers)].sort_values(['ticker', 'date'])
 
-df = df_raw[df_raw['ticker'].isin(selected_tickers)]
-
-# --- Tabs ---
+# --- 4. Tabs ---
 tab1, tab2, tab3, tab4 = st.tabs([
-    "📊 趋势分析",
-    "🧬 相关性分析",
-    "🏆 量化评分",
-    "📋 数据明细"
+    "📊 Trend Analysis",
+    "🧬 Correlation",
+    "🏆 Multi-Factor Model",
+    "📋 Raw Data"
 ])
 
-# ===================== TAB1 =====================
+# ================= TAB 1: Trend Analysis =================
 with tab1:
     fig = px.line(df, x='date', y=selected_metric, color='ticker',
-                  title=f"{metric_map[selected_metric]} 走势")
+                  title=f"Historical {metric_map[selected_metric]} Trend")
+    fig.update_traces(connectgaps=True)
     st.plotly_chart(fig, use_container_width=True)
 
-    # ⭐ 风险收益分析
-    st.markdown("### ⚖️ 风险-收益分析")
+    st.markdown("### ⚖️ Risk-Return Matrix")
+    risk_df = df.groupby('ticker').agg({'ret': 'mean', 'volatility': 'mean'}).dropna().reset_index()
+    risk_df['sharpe'] = risk_df['ret'] / (risk_df['volatility'] + 1e-6)
 
-    risk_df = df.groupby('ticker').agg({
-        'ret': 'mean',
-        'volatility': 'mean'
-    }).dropna().reset_index()
+    col_chart, col_insight = st.columns([2, 1])
+    with col_chart:
+        st.plotly_chart(px.scatter(risk_df, x='volatility', y='ret', text='ticker', size='sharpe', color='sharpe'),
+                        use_container_width=True)
 
-    if not risk_df.empty:
-        fig2 = px.scatter(
-            risk_df,
-            x='volatility',
-            y='ret',
-            text='ticker',
-            labels={'volatility': '风险（波动率）', 'ret': '平均收益'}
-        )
-        fig2.update_traces(textposition='top center')
-        st.plotly_chart(fig2, use_container_width=True)
+    with col_insight:
+        st.markdown("#### Automated Insights")
+        latest_data = df[df['date'] == df['date'].max()]
+        if not latest_data.empty:
+            best_m = latest_data.sort_values(selected_metric, ascending=False).iloc[0]
+            st.success(f"**Leader in {metric_map[selected_metric]}: {best_m['ticker']}**")
+            best_s = risk_df.sort_values('sharpe', ascending=False).iloc[0]
+            st.info(f"**Efficiency King: {best_s['ticker']}**")
 
-        st.markdown("""
-💡 **核心洞察：**
-- 高收益通常伴随高风险  
-- 低波动股票更适合稳健投资  
-- 右上区域代表高风险高回报标的  
-""")
-
-# ===================== TAB2 =====================
+# ================= TAB 2: Correlation Analysis (Updated) =================
 with tab2:
     if len(selected_tickers) > 1:
+        # Create Correlation Matrix
         corr = df.pivot_table(index='date', columns='ticker', values='ret').corr()
-        st.plotly_chart(px.imshow(corr, text_auto=True), use_container_width=True)
 
-        st.markdown("""
-📌 **分析结论：**
-低相关性有助于分散风险，提高投资组合稳定性。
-""")
+        col_mat, col_ana = st.columns([1.5, 1])
+
+        with col_mat:
+            st.plotly_chart(px.imshow(corr, text_auto=True, color_continuous_scale='RdBu_r'), use_container_width=True)
+
+        with col_ana:
+            st.markdown("#### 🤖 Correlation Intelligence")
+
+            # Extract off-diagonal values to calculate average correlation
+            mask = np.ones(corr.shape, dtype=bool)
+            np.fill_diagonal(mask, 0)
+            avg_corr = corr.values[mask].mean()
+
+            st.metric("Average Portfolio Correlation", f"{avg_corr:.2f}")
+
+            # Automated Interpretation
+            if avg_corr > 0.7:
+                st.warning(
+                    "**High Concentration Risk:** Most selected stocks move in the same direction. Your portfolio lacks diversification.")
+            elif 0.4 <= avg_corr <= 0.7:
+                st.info(
+                    "**Moderate Diversification:** There is a notable link between these stocks, common in the tech sector, but some idiosyncratic movement exists.")
+            else:
+                st.success(
+                    "**Strong Diversification:** These stocks show low correlation, which helps in reducing overall portfolio volatility.")
+
+            # Identify most/least correlated pairs
+            corr_pairs = corr.unstack().sort_values(ascending=False).drop_duplicates()
+            corr_pairs = corr_pairs[corr_pairs < 0.99]  # Exclude self-correlation
+
+            st.write(
+                f"**Highest Link:** {corr_pairs.index[0][0]} & {corr_pairs.index[0][1]} ({corr_pairs.iloc[0]:.2f})")
+            st.write(
+                f"**Best Pair for Hedging:** {corr_pairs.index[-1][0]} & {corr_pairs.index[-1][1]} ({corr_pairs.iloc[-1]:.2f})")
     else:
-        st.warning("请至少选择两只股票")
+        st.warning("Please select at least 2 stocks to view the correlation matrix.")
 
-# ===================== TAB3 =====================
+# ================= TAB 3: Multi-Factor Model =================
 with tab3:
-    st.subheader("🏆 多因子评分模型")
-
+    st.subheader("Multi-Factor Scoring Engine")
     c1, c2, c3, c4 = st.columns(4)
-    w_roa = c1.slider("盈利能力（ROA）", 0.0, 1.0, 0.4)
-    w_rnd = c2.slider("研发投入", 0.0, 1.0, 0.3)
-    w_gm = c3.slider("毛利水平", 0.0, 1.0, 0.2)
-    w_val = c4.slider("估值（BM）", 0.0, 1.0, 0.1)
+    w_roa = c1.slider("Profitability (ROA)", 0.0, 1.0, 0.4)
+    w_rnd = c2.slider("Innovation (R&D)", 0.0, 1.0, 0.3)
+    w_gm = c3.slider("Efficiency (Margin)", 0.0, 1.0, 0.2)
+    w_val = c4.slider("Valuation (B/M)", 0.0, 1.0, 0.1)
 
     latest = df[df['date'] == df['date'].max()].copy()
+    if not latest.empty:
+        def zscore(s):
+            return (s - s.mean()) / (s.std() + 1e-6)
 
-    def norm(s):
-        return (s - s.min()) / (s.max() - s.min() + 1e-6)
 
-    latest['score'] = (
-        norm(latest['roa']) * w_roa +
-        norm(latest['rnd_to_rev']) * w_rnd +
-        norm(latest['gross_margin']) * w_gm +
-        norm(latest['bm_ratio']) * w_val
-    ) * 100
+        latest['score'] = (zscore(latest['roa']) * w_roa + zscore(latest['rnd_to_rev']) * w_rnd +
+                           zscore(latest['gross_margin']) * w_gm + zscore(latest['bm_ratio']) * w_val)
 
-    res = latest[['ticker', 'score']].sort_values('score', ascending=False)
-    res.columns = ["股票代码", "量化得分"]
+        res = latest[['ticker', 'score', 'roa', 'rnd_to_rev', 'gross_margin', 'bm_ratio']].sort_values('score',
+                                                                                                       ascending=False)
+        res = res.reset_index(drop=True)
+        res.index = res.index + 1
+        res.index.name = "Rank"
 
-    # ⭐ 修复表格显示问题
-    st.dataframe(
-        res.reset_index(drop=True).style
-        .background_gradient(subset=["量化得分"], cmap="YlGn")
-        .format({"量化得分": "{:.2f}"}),
-        use_container_width=True
-    )
+        col_table, col_ana = st.columns([1.5, 1])
+        with col_table:
+            st.dataframe(res[['ticker', 'score']], use_container_width=True)
 
-    st.success(f"🏅 当前最优标的：{res.iloc[0]['股票代码']}")
+        with col_ana:
+            st.markdown("#### Why is 1 Ranked Best?")
+            top_stock = res.iloc[0]
+            drivers = []
+            if top_stock['roa'] > latest['roa'].mean(): drivers.append("Superior Profitability")
+            if top_stock['rnd_to_rev'] > latest['rnd_to_rev'].mean(): drivers.append("High R&D Reinvestment")
+            if top_stock['gross_margin'] > latest['gross_margin'].mean(): drivers.append("Strong Margins")
 
-    st.markdown("""
-📌 **模型逻辑：**
-本评分系统基于多因子投资理论，将盈利能力、研发投入、毛利率和估值进行加权整合。
-""")
+            st.success(f"**Top Ranked: {top_stock['ticker']}**")
+            for d in drivers:
+                st.write(f"✅ {d}")
+            st.write(
+                f"**{top_stock['ticker']}** leads due to its dominant statistical profile across your weighted factors.")
 
-# ===================== TAB4 =====================
+# ================= TAB 4: Raw Data =================
 with tab4:
-    st.dataframe(df, use_container_width=True)
+    st.dataframe(df.reset_index(drop=True), use_container_width=True)
 
-# --- 最终总结 ---
-st.markdown("""
----
+# --- Footer ---
+st.markdown("---")
+st.caption("2026 TechQuant Pro | Research Terminal | Data: WRDS")
 
-## 🧠 最终结论
-
-- 高研发投入企业具备更强成长性  
-- 高BM股票具备估值保护  
-- 综合能力强的企业得分最高  
-- 分散投资可以降低整体风险  
-
-👉 多因子分析能显著提升投资决策质量。
-""")
