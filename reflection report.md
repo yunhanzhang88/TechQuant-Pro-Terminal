@@ -41,7 +41,10 @@ AI tools used: ChatGPT, Gemini
 Purpose: debugging, writing improvement, concept understanding  
 Example prompts:  
 - How to avoid look-ahead bias  
-- Debug python merge issue  
-How used: I tested all suggestions in Python to ensure they ran correctly and produced expected results, making adjustments where necessary. 
+- Debug python merge issue
+
+How used: I tested all suggestions in Python to ensure they ran correctly and produced expected results, making adjustments where necessary.
+
 Model/version: ChatGPT-5.3, Gemini 3 Flash
+
 Access date: April 2026
