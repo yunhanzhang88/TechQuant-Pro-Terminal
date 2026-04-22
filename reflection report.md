@@ -1,46 +1,47 @@
-# Reflective Report: TechQuant Pro 50 Multi-Factor Analysis Terminal
+Reflective Report
 
-**Project Scope:** US Tech Top 50 (2010 - 2025)  
-**Data Architecture:** WRDS (CRSP & Compustat)  
+1. Analytical Problem and Intended Audience  
+The core analytical problem of this project was to design a structured, data-driven framework for evaluating the performance and investment potential of major U.S. technology companies. The technology sector is highly volatile and often influenced by narratives rather than fundamentals, making it difficult for investors to make rational decisions. Therefore, the objective was to reduce noise and provide a systematic multi-factor evaluation tool.
 
----
+The intended audience includes undergraduate students studying finance or data science, beginner quantitative analysts, and individual investors who want to understand how financial data can be translated into actionable insights. The project also serves as a demonstration of how Python-based data analysis can support financial decision-making.
 
-## 1. Project Background and Motivation
-As a Finance and Economics sophomore at Xi'an Jiaotong-Liverpool University (XJTLU), I have consistently sought to apply rigorous statistical methods to real-world financial markets. The **TechQuant Pro 50** project was conceived to address a specific gap in the retail investment landscape: the lack of transparent, fundamental-based quantitative tools for evaluating high-growth technology stocks.
+2. Dataset Selection and Rationale  
+The dataset was obtained from WRDS (Wharton Research Data Services), combining CRSP and Compustat databases. CRSP provides reliable stock price and market capitalization data, while Compustat contains detailed firm-level financial statements such as revenue, net income, and R&D expenditure.
 
-By leveraging a 15-year longitudinal dataset (2010-2025) sourced from **Wharton Research Data Services (WRDS)**, this project builds a professional-grade terminal. It allows users to bypass market hype and evaluate the "US Tech Top 50" (including AI leaders like NVDA and MSFT) through a structured multi-factor scoring engine. The motivation was to transform raw, complex financial data into actionable insights using Python and Streamlit.
+This dataset was chosen for three main reasons. First, it is academically rigorous and widely used in financial research, ensuring data credibility. Second, it provides both market and fundamental data, which is essential for multi-factor analysis. Third, the time span (2010–2025) captures multiple market cycles, including technological booms and downturns, making the analysis more robust.
 
-## 2. Reflection: Technical and Financial Synthesis
-### 2.1 Data Integrity and the "Point-in-Time" Challenge
-Reflecting on the development process, the most significant technical hurdle was ensuring data integrity. In my `notebook.ipynb`, I implemented a sophisticated `match_logic` function to align monthly returns from CRSP with quarterly financial metrics from Compustat. 
+3. Python Methods and Workflow  
+The project followed a structured data analysis workflow implemented in Python.
 
-Initially, I struggled with the risk of **Look-ahead Bias**—using information that wasn't yet public at the time of the trade. By implementing a **backward-merge** strategy, I ensured that my multi-factor scores only utilize data available as of the "Public Date." This reinforced my understanding that in quantitative research, the *timing* of data is just as important as the *value* of the data itself.
+- Data Cleaning and Preprocessing: Using pandas to handle missing values, standardize variables, and align different datasets.  
+- Time Alignment: A backward-merge method was applied to match quarterly financial data with monthly stock returns, avoiding look-ahead bias.  
+- Feature Engineering: Key financial indicators such as ROA, R&D intensity, gross margin, and book-to-market ratio were calculated.  
+- Normalization: Min-Max scaling was used to standardize different metrics to a comparable range.  
+- Scoring System: A multi-factor scoring model was built by combining normalized indicators.  
+- Visualization: matplotlib and seaborn were used to generate charts, including correlation heatmaps.  
+- Interface (Streamlit): The results were presented through an interactive interface.
 
-### 2.2 Financial Logic in the AI Era
-Selecting the four core factors—**Profitability (ROA)**, **Innovation (R&D Intensity)**, **Efficiency (Gross Margin)**, and **Valuation (B/M)**—allowed me to observe the market's evolving narrative. My reflection during testing showed that while the **B/M ratio** is a classic value indicator, its predictive power was often eclipsed by **R&D Intensity** during the 2023-2025 AI surge. This project taught me that "Quality" in the tech sector is fundamentally driven by innovation expenditure, which serves as a leading indicator for future competitive moats.
+4. Main Findings and Outputs  
+Companies with consistently high R&D investment showed stronger long-term resilience. Correlation analysis revealed diversification benefits within the tech sector. The main output was an interactive dashboard displaying rankings and insights.
 
-## 3. Limitations and Critical Analysis
-Despite the robust framework of TechQuant Pro 50, several limitations remain that I intend to address in future iterations:
+5. Difficulties and Challenges  
+Challenges included missing data, aligning datasets with different frequencies, and building the Streamlit interface.
 
-* **Survivorship Bias:** The current model analyzes the "Top 50" companies as they exist in early 2026. This naturally creates a bias toward successful survivors. A truly institutional-grade backtest would require a "Point-in-Time" universe that includes companies that were delisted or fell out of the rankings between 2010 and 2025.
-* **Linear Scoring Constraints:** The model currently uses a linear weighted sum for scoring. However, financial factors often exhibit non-linear relationships; for example, excessive R&D might be a negative signal during a liquidity crunch if not paired with strong Gross Margins. 
-* **Static Factor Weights:** While the Streamlit sliders allow user customization, the weights are static and do not adapt to different macroeconomic "regimes" (e.g., high inflation vs. low interest rates).
+6. Solutions  
+Missing data was handled with appropriate imputation. A backward matching logic avoided look-ahead bias. Documentation and iterative testing improved the interface.
 
-## 4. Professional Practice and AI Disclosure
-In alignment with the highest standards of professional and academic practice, I am committed to full transparency regarding the methodologies and tools used in this project.
+7. Limitations and Improvements  
+The model is relatively simple and limited to top 50 firms. Future improvements include adding more factors and using machine learning.
 
-### 4.1 AI Disclosure and Usage
-I utilized advanced Generative AI models, specifically **Google Gemini** and **OpenAI ChatGPT**, as collaborative partners in the development of this project:
-* **Code Debugging & Optimization:** AI was instrumental in optimizing the Pandas data-cleaning pipeline and troubleshooting Plotly's interactive heatmap rendering in `app.py`.
-* **Technical Documentation:** Gemini and ChatGPT assisted in refining the linguistic clarity of this Reflective Report and the `README.md`, ensuring they meet international professional standards.
-* **Human-in-the-Loop:** All AI-suggested code and financial logic were rigorously manually reviewed and validated against my coursework at XJTLU. I personally adjusted all scoring algorithms to ensure they strictly adhered to the WRDS data structure and financial theory.
+8. Learning Outcomes  
+This project improved my understanding of financial data analysis, Python skills, and the importance of avoiding bias.
 
-### 4.2 Data Ethics
-All proprietary data was handled through authorized WRDS access. To respect data redistribution policies, the GitHub repository contains only the finalized, processed scores and anonymized indicators rather than raw, bulk proprietary datasets.
-
-## 5. Conclusion and Professional Growth
-This project served as a comprehensive synthesis of my skills in **Quantitative Finance** and **Data Science**. Winning a previous quantitative fund simulation competition gave me the confidence to build this terminal, but this project challenged me to think like a developer. 
-
-The process of building TechQuant Pro 50 has solidified my goal of pursuing a Master’s in Financial Engineering (MFE). It has moved me beyond being a consumer of financial news to being a creator of financial tools—a shift that is essential for any aspiring quantitative researcher in the modern AI-driven financial industry.
-
----
+AI Disclosure
+AI tools used: ChatGPT, Gemini  
+Purpose: debugging, writing improvement, concept understanding  
+Example prompts:  
+- How to avoid look-ahead bias  
+- Debug python merge issue  
+How used: I tested all suggestions in Python to ensure they ran correctly and produced expected results, making adjustments where necessary. 
+Model/version: ChatGPT-5.3, Gemini 3 Flash
+Access date: April 2026
