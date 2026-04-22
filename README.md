@@ -18,6 +18,9 @@ This project targets **retail investors, finance/economics students, and junior 
 
 The dataset covers the **top 50 US technology companies** over the period **2010–2025**, providing a long-term perspective on firm performance across different market cycles.
 
+import os
+file_path = os.path.join("wrds_output_v3", "us_tech_top50_2026.csv")
+
 ### Key Variables
 
 - `prc` — Stock price  
