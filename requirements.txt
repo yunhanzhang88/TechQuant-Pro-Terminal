@@ -3,19 +3,18 @@
 # ---------------------------------------------------------
 
 # Data Manipulation & Analysis
-pandas==2.2.1
-numpy==1.26.4
+pandas==2.2.3
+numpy==2.4.4
 
 # WRDS API (Required for data extraction in notebook.ipynb)
-wrds==3.2.0
+wrds==3.5.0
 
 # Web Application Framework
-streamlit==1.32.0
+streamlit==1.56.0
 
 # Data Visualization
-plotly==5.19.0
-matplotlib==3.8.3
+plotly==6.7.0
+matplotlib==3.10.8
 
 # Mathematical & Date Utilities
-scipy==1.12.0
-python-dateutil==2.8.2
+python-dateutil==2.9.0.post0
